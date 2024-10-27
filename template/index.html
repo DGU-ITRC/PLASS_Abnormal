@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload</title>
+    <style>
+        .box {
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            max-width: 28rem;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>이상행동 추론 데모</h1>
+
+    <h2>정보</h2>
+    <div class="box">
+        <p>연구실 PLASS</p>
+        <p>업로드된 동영상 파일에 대해 이상행동을 추론합니다.</p>
+        <a href="/redoc">API 문서확인하기</a>
+    </div>
+    <h2>데모 실행</h2>
+    <div class="box">
+    <form action="/inference" method="post" enctype="multipart/form-data">
+        <label for="video">업로드</label>
+        <input type="file" id="video" name="video" accept="video/*" required>
+        <button type="submit">Upload</button>
+    </form>
+    </div>
+</body>
+</html>
