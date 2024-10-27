@@ -1,4 +1,4 @@
-# 이상행동 추론 모델(Abnormal Infrenece Model)
+# 이상행동 감지 이상행동 탐지 모델(Abnormal Action Detection Model)
 
 > 릴리즈된 버전을 사용하시려면 다음 링크로 이동합니다. [Release v1.5](https://github.com/DGU-ITRC/PLASS_Abnormal/releases/tag/v1.5)
 
