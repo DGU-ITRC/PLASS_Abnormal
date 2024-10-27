@@ -39,7 +39,7 @@ def init_args(video=None):
         'extract_args': {
             'init_args': {
                 'pose2d': 'rtmo', 
-                'pose2d_weights': './checkpoint/rtmo_checkpoint.pth', 
+                'pose2d_weights': "./checkpoint/rtmo_checkpoint.pth", 
                 'scope': 'mmpose', 
                 'device': 'cuda:0', 
                 'det_model': None, 
@@ -113,29 +113,29 @@ def init_c3d_model(args):
 
 def init_seq_model(args):
     frame_features_input = keras.Input((args['max_seq_length'], args['num_feature']))
-    mask_input = keras.Input((args['max_seq_length'],), dtype='bool')
+    mask_input = keras.Input((args['max_seq_length'],), dtype="bool")
 
     x = keras.layers.GRU(16, return_sequences=True)(
         frame_features_input, mask=mask_input
     )
     x = keras.layers.GRU(8)(x)
     x = keras.layers.Dropout(0.4)(x)
-    x = keras.layers.Dense(8, activation='relu')(x)
-    output = keras.layers.Dense(21, activation='softmax')(x)
+    x = keras.layers.Dense(8, activation="relu")(x)
+    output = keras.layers.Dense(21, activation="softmax")(x)
     
     model = keras.Model([frame_features_input, mask_input], output)
     model.compile(
-        loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy']
+        loss="sparse_categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
     )
     model.load_weights(args['seq_checkpoint'])
     return model
 
 def init_feature_extractor(args):
     feature_extractor = keras.applications.ResNet50(
-        # weights='imagenet',
+        # weights="imagenet",
         weights=args['resnet_checkpoint'],
         include_top=False,
-        pooling='avg',
+        pooling="avg",
         input_shape=(args['max_image_size'][1], args['max_image_size'][0], 3),
     )
     preprocess_input = keras.applications.resnet.preprocess_input
@@ -144,7 +144,7 @@ def init_feature_extractor(args):
     preprocessed = preprocess_input(inputs)
 
     outputs = feature_extractor(preprocessed)
-    return keras.Model(inputs, outputs, name='feature_extractor')
+    return keras.Model(inputs, outputs, name="feature_extractor")
 
 def marking_bold_point(args, target, x, y):
     if x<0 or y <0 or x >= args['max_image_size'][0] or y >= args['max_image_size'][1]:
@@ -285,8 +285,8 @@ def extract_feature_mask(args, feature_extractor, frames):
         processed_frames.append(padded_frame)
 
     frames = np.array(processed_frames)[None, ...]
-    mask = np.zeros(shape=(1, args['max_seq_length'],), dtype='bool')
-    feature = np.zeros(shape=(1, args['max_seq_length'], args['num_feature']), dtype='float32')
+    mask = np.zeros(shape=(1, args['max_seq_length'],), dtype="bool")
+    feature = np.zeros(shape=(1, args['max_seq_length'], args['num_feature']), dtype="float32")
    
     for frame_index, batch in enumerate(frames):
         video_length = batch.shape[1]
@@ -399,54 +399,52 @@ def combine(args, c3d_category, seq_category):
 
 async def inference(video=None):
     # INITIALIZING
-    yield f"data: {json.dumps({'message': f'Inference Start'})}\n\n"
-    yield f"data: {json.dumps({'message': f'Initalizing Arguments...'})}\n\n"
+    yield f"Inference Start\n"
+    yield f"Initalizing Arguments...\n"
     args = init_args(video)
-    yield f"data: {json.dumps({'message': f'Initalizing Arguments... Done!'})}\n\n"
+    yield f"Initalizing Arguments... Done!\n"
 
     # C3D MODEL
-    yield f"data: {json.dumps({'message': f'Initialize C3D Model...'})}\n\n"
+    yield f"Initialize C3D Model...\n"
     c3d_model = init_c3d_model(args)
-    yield f"data: {json.dumps({'message': f'Initialize C3D Model... Done!'})}\n\n"
+    yield f"Initialize C3D Model... Done!\n"
     clip = []
     cap = cv2.VideoCapture(args['video'])
     num_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     cur_frame = 1
-    yield f"data: {json.dumps({'message': f'Preprocessing Video...'})}\n\n"
+    yield f"Preprocessing Video...\n"
     while True:
         flag, frame = cap.read()
         if flag:
-            progress = math.ceil(cur_frame / num_frame * 100)
-            yield f"data: {json.dumps({'progress': f'{progress}'})}\n\n"
+            yield f"- {cur_frame}/{num_frame}\n"
             resorted_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             resized_frame = cv2.resize(resorted_frame, args['resize'])
             clip.append(resized_frame)
             cur_frame += 1
         else:
-            yield f"data: {json.dumps({'message': f'Preprocessing Video... Done!'})}\n\n"
+            yield f"Preprocessing Video... Done!\n"
             break
     
-    yield f"data: {json.dumps({'message': f'Inference Action(Model, C3D)...'})}\n\n"
+    yield f"Inference Action(Model, C3D)...\n"
     inference_result_list = []
     last_idx = min(args['limit_frame'], num_frame - 15)
     for start_idx in range(0, num_frame-15):
-        progress = math.ceil(start_idx / last_idx * 100)
-        yield f"data: {json.dumps({'progress': f'{progress}'})}\n\n"
+        yield f"- {start_idx}/{last_idx}\n"
         end_idx = start_idx + args['inference_frame_num']
         if end_idx < num_frame and start_idx < last_idx:
             label = inference_c3d(c3d_model, clip[start_idx:end_idx])
             inference_result_list.append(label)
         else:
             break
-    yield f"data: {json.dumps({'message': f'Inference Action(Model, C3D)... Done!'})}\n\n"
+    yield f"Inference Action(Model, C3D)... Done!\n"
     c3d_result = max(set(inference_result_list), key=inference_result_list.count)
-    yield f"data: {json.dumps({'message': f'Extracting Video to Frames...'})}\n\n"
+    yield f"Extracting Video to Frames...\n"
 
     # SEQ MODEL
-    yield f"data: {json.dumps({'message': f'Initialize Seq Model...'})}\n\n"
+    yield f"Initialize Seq Model...\n"
     seq_model = init_seq_model(args)
-    yield f"data: {json.dumps({'message': f'Initialize Seq Model... Done!'})}\n\n"
-    yield f"data: {json.dumps({'message': f'Extracting Video to Frames...'})}\n\n"
+    yield f"Initialize Seq Model... Done!\n"
+    yield f"Extracting Video to Frames...\n"
     _init_args = args['extract_args']['init_args']
     _call_args = args['extract_args']['call_args']
     extracted_frames = []
@@ -458,7 +456,7 @@ async def inference(video=None):
         while True:
             ret, frame = cap.read()
             if ret:
-                yield f"data: {json.dumps({'message': f'- {frame_index}/{frame_count}'})}\n\n"
+                yield f"- {frame_index}/{frame_count}\n"
                 temp_call_args = _call_args
                 temp_call_args['inputs'] = frame
                 results = inferencer(**temp_call_args)
@@ -485,31 +483,31 @@ async def inference(video=None):
             else:
                 break
     cap.release()
-    yield f"data: {json.dumps({'message': f'Extracting Video to Frames... Done!'})}\n\n"
-    yield f"data: {json.dumps({'message': f'Extracting Frames to Skeletons...'})}\n\n"
+    yield f"Extracting Video to Frames... Done!\n"
+    yield f"Extracting Frames to Skeletons...\n"
     bitmap_frames = extract_skeleton(args, extracted_frames)
-    yield f"data: {json.dumps({'message': f'Extracting Frames to Skeletons...Done!'})}\n\n"
-    yield f"data: {json.dumps({'message': f'Initialize Feature Extractor...'})}\n\n"
+    yield f"Extracting Frames to Skeletons...Done!\n"
+    yield f"Initialize Feature Extractor...\n"
     feature_extractor = init_feature_extractor(args)
-    yield f"data: {json.dumps({'message': f'Initialize Feature Extractor... Done!'})}\n\n"
+    yield f"Initialize Feature Extractor... Done!\n"
     label_processor = tf.keras.layers.experimental.preprocessing.StringLookup(num_oov_indices=0, vocabulary=[str(key) for key in LABELMAP.keys()])
     vocabulary = label_processor.get_vocabulary()
-    yield f"data: {json.dumps({'message': f'Inference Action(Model, SEQ)...'})}\n\n"
+    yield f"Inference Action(Model, SEQ)...\n"
     feature, mask = extract_feature_mask(args, feature_extractor, bitmap_frames)
     seq_result = inference_seq(seq_model, vocabulary, feature, mask)
-    yield f"data: {json.dumps({'message': f'Inference Action(Model, SEQ)... Done!'})}\n\n"
+    yield f"Inference Action(Model, SEQ)... Done!\n"
 
     # CATEGORIZATION
-    yield f"data: {json.dumps({'message': f'Inference Result: C3D Model: {c3d_result}, SEQ Model: {seq_result}'})}\n\n"
-    yield f"data: {json.dumps({'message': f'Categorization Reuslts...'})}\n\n"
+    yield f"Inference Result: C3D Model: {c3d_result}, SEQ Model: {seq_result}\n"
+    yield f"Categorization Reuslts...\n"
     c3d_category = categorization(c3d_result)
     seq_category = categorization(seq_result)
-    yield f"data: {json.dumps({'message': f'Categorization Reuslts... Done!'})}\n\n"
-    yield f"data: {json.dumps({'message': f'Categorized Result: C3D Model: {c3d_result}, SEQ Model: {seq_result}'})}\n\n"
+    yield f"Categorization Reuslts... Done!\n"
+    yield f"Categorized Result: C3D Model: {c3d_result}, SEQ Model: {seq_result}\n"
 
     # COMBINE
-    yield f"data: {json.dumps({'message': f'Comine Reuslts...'})}\n\n"
+    yield f"Comine Reuslts...\n"
     result = combine(args, c3d_category, seq_category)
-    yield f"data: {json.dumps({'message': f'Comine Reuslts... Done!'})}\n\n"
-    yield f"data: {json.dumps({'message': f'Inference Result: {result}'})}\n\n"
-    yield f"data: {json.dumps({'message': f'{result}'})}\n\n"
+    yield f"Comine Reuslts... Done!\n"
+    yield f"Inference Result: {result}\n"
+    yield json.dumps(result)

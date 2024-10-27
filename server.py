@@ -44,33 +44,16 @@ async def demo(request: Request):
     """
     return templates.TemplateResponse("index.html",{"request":request})
 
-@app.get("/infrence")
-async def infrence():
+@app.post("/upload")
+async def upload_video(video: UploadFile = File(...)):
     """
-    데모(추론)를 실행합니다. 서버에 저장된 데모 동영상을 기반으로 추론을 시작합니다.
-
-    Video file: /static/input/clip_short.mp4
-
-    Args:
-        request (Request): FastAPI Request 객체
-
-    Returns:
-        StreamingResponse: 추론 진행상태 및 결과를 반환하는 스트리밍 응답
-    """
-    return StreamingResponse(infrence_stream(), media_type='text/event-stream')
-
-@app.post("/inference")
-async def infrence_uploaded_video(video: UploadFile = File(...)):
-    """
-    데모(추론)를 실행합니다. 사용자가 서버에 업로드한 동영상을 기반으로 추론을 시작합니다.
-
-    Video file: /static/demo/clip_short.mp4
+    동영상을 서버에 업로드합니다.
 
     Args:
         video (UploadFile): 사용자가 업로드한 동영상 파일
 
     Returns:
-        StreamingResponse: 추론 진행상태 및 결과를 반환하는 스트리밍 응답
+        str: 업로드한 동영상 파일명
     """
     timestamp = int(time.time() * 1000000)
     input_directory = "static/input"
@@ -79,7 +62,25 @@ async def infrence_uploaded_video(video: UploadFile = File(...)):
     content = await video.read()
     with open(filepath, "wb") as f:
         f.write(content)
-    return StreamingResponse(infrence_stream(filepath), media_type='text/event-stream')
+    return filename
+
+@app.get("/inference")
+async def infrence(video: str = None):
+    """
+    데모(추론)를 실행합니다. 사용자가 서버에 업로드한 동영상을 기반으로 추론을 시작합니다.
+
+    Args:
+        video (str): 동영상 파일 경로, None일 경우 static/demo/clip_short.mp4 사용
+
+    Returns:
+        StreamingResponse: 추론 진행상태 및 결과를 반환하는 스트리밍 응답
+    """
+    if video is None:
+        video = "static/demo/clip_short.mp4"
+    else:
+        video = f"static/input/{video}"
+    headers = {"Cache-Control": "no-cache", "Connection": "keep-alive"}
+    return StreamingResponse(infrence_stream(video), media_type='text/event-stream', headers=headers)
 
 async def infrence_stream(videopath=None):
     """
@@ -91,13 +92,12 @@ async def infrence_stream(videopath=None):
     Returns:
         추론 진행상태 및 결과 문자열
     """
-    yield f"Target Video: {videopath}"
+    yield f"data: {json.dumps({'message': f'video : {videopath}'})}\n\n"
     start_time = time.time()
-    yield "Infrence Started"
+    yield "data: {json.dumps({'message': 'Inference Started'})}\n\n"
     async for response in model.inference(videopath):
         yield response
-    yield "Infrence Done"
+    yield "data: {json.dumps({'message': 'Inference... Done!'})}\n\n"
     end_time = time.time()
-    yield f"Infrence Done in {end_time - start_time} seconds"
     duration = end_time - start_time
-    yield json.dumps({"msg": f"Infrence Done in {duration} seconds", "data": response})
+    yield f"data: {json.dumps({'message': f'Inference done in {duration} seconds', 'data': response})}\n\n"
