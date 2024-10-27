@@ -13,7 +13,7 @@ from keras.regularizers import l2
 from keras.models import Model
 from mmpose.apis.inferencers import MMPoseInferencer
 
-CLEANER = ' ' * 30 + '\n'
+DIVIDER = ' ' * 30
 LABELMAP = {0: 'A01',1: 'A02',2: 'A03',3: 'A04',4: 'A05',5: 'A06',6: 'A07',7: 'A08',8: 'A17',9: 'A18',10: 'A19',11: 'A20',12: 'A21',13: 'A22',14: 'A23',15: 'A24',16: 'A25',17: 'A26',18: 'A30',19: 'A31',
 }
 
@@ -458,7 +458,8 @@ async def inference(video=None):
         while True:
             ret, frame = cap.read()
             if ret:
-                yield f"data: {json.dumps({'message': f'- {frame_index}/{frame_count}'})}\n\n"
+                progress = math.ceil(frame_index / frame_count * 100)
+                yield f"data: {json.dumps({'progress': f'{progress}'})}\n\n"
                 temp_call_args = _call_args
                 temp_call_args['inputs'] = frame
                 results = inferencer(**temp_call_args)
@@ -512,4 +513,9 @@ async def inference(video=None):
     result = combine(args, c3d_category, seq_category)
     yield f"data: {json.dumps({'message': f'Comine Reuslts... Done!'})}\n\n"
     yield f"data: {json.dumps({'message': f'Inference Result: {result}'})}\n\n"
-    yield f"data: {json.dumps({'message': f'{result}'})}\n\n"
+    yield f"data: {json.dumps({'message': f'Visualize Result'})}\n\n"
+    for idx, row in enumerate(result):
+        index = idx + 1
+        label = row[0]
+        probability = format(row[1], '.6f')
+        yield f"data: {json.dumps({'message': f'[{index}] {label}: {probability}%'})}\n\n"

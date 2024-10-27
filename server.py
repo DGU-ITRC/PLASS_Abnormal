@@ -92,12 +92,12 @@ async def infrence_stream(videopath=None):
     Returns:
         추론 진행상태 및 결과 문자열
     """
-    yield f"data: {json.dumps({'message': f'video : {videopath}'})}\n\n"
+    yield f"data: {json.dumps({'message': f'Video : {videopath}'})}\n\n"
     start_time = time.time()
-    yield "data: {json.dumps({'message': 'Inference Started'})}\n\n"
+    yield f"data: {json.dumps({'message': 'Inference Started'})}\n\n"
     async for response in model.inference(videopath):
         yield response
-    yield "data: {json.dumps({'message': 'Inference... Done!'})}\n\n"
+    yield f"data: {json.dumps({'message': 'Inference... Done!'})}\n\n"
     end_time = time.time()
     duration = end_time - start_time
     yield f"data: {json.dumps({'message': f'Inference done in {duration} seconds', 'data': response})}\n\n"

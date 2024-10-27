@@ -26,11 +26,34 @@
     </div>
     <h2>데모 실행</h2>
     <div class="box">
-    <form action="/inference" method="post" enctype="multipart/form-data">
-        <label for="video">업로드</label>
-        <input type="file" id="video" name="video" accept="video/*" required>
-        <button type="submit">Upload</button>
-    </form>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <label for="video">업로드</label>
+            <input type="file" id="video" name="video" accept="video/*" required>
+            <button type="submit">Upload</button>
+        </form>
     </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const filename = await response.json();
+                
+                if (filename) {
+                    window.location.href = `/inference?video=${filename}`;
+                } else {
+                    alert('파일 업로드에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('파일 업로드 중 오류가 발생했습니다.');
+            }
+        });
+    </script>
 </body>
 </html>
