@@ -1,7 +1,9 @@
 # 이상행동 감지 이상행동 탐지 모델(Abnormal Action Detection Model)
 
-> 릴리즈된 버전을 사용하시려면 다음 링크로 이동합니다. [Release v1.5](https://github.com/DGU-ITRC/PLASS_Abnormal/releases/tag/v1.5)
+![thumbnail](./resource/thumb.png)
 
-> 학습된 가중치를 다운로드 받으시려면 다음 링크로 이동합니다. [Checkpoint](https://github.com/DGU-ITRC/PLASS_Abnormal/releases/tag/checkpoint)
+> 릴리즈 버전 [Release v1.6](https://github.com/DGU-ITRC/PLASS_Abnormal/releases/tag/v1.6)
+
+> 학습된 가중치 다운로드 [Checkpoint](https://github.com/DGU-ITRC/PLASS_Abnormal/releases/tag/checkpoint)
 
 TBU
